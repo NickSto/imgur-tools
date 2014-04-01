@@ -12,8 +12,7 @@ API_DOMAIN = 'api.imgur.com'
 API_PATH_TEMPLATE = '/3/account/{}/comments'
 
 OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose_mode':True,
-  'verbose':None, 'quiet':None, 'regex':False, 'format':'human',
-  'stop_when_found':False}
+  'verbose':None, 'quiet':None, 'regex':False, 'format':'human'}
 USAGE = "%(prog)s [options]"
 DESCRIPTION = """Search all comments by an Imgur user."""
 EPILOG = """You can include command line arguments from a file by including the
@@ -32,13 +31,13 @@ def main():
   parser.set_defaults(**OPT_DEFAULTS)
 
   parser.add_argument('query',
-    help="""String to search for.""")
+    help='String to search for.')
   parser.add_argument('-u', '--user', required=True,
-    help="""The username whose comments will be searched. Required, if not
-provided by an @ file like @default.args.""")
+    help='The username whose comments will be searched. Required, if not '
+      'provided by an @ file like @default.args.')
   parser.add_argument('-C', '--client-id', required=True,
-    help="""Imgur API Client-ID to use. Required, if not provided by an @ file
-like @default.args.""")
+    help='Imgur API Client-ID to use. Required, if not provided by an @ file '
+      'like @default.args.')
   parser.add_argument('-c', '--case-sensitive', dest='ignore_case',
     action='store_false',
     help='Don\'t ignore case when searching. Default: '
@@ -48,18 +47,20 @@ like @default.args.""")
     help='Ignore case when searching. Default: '
       +str(OPT_DEFAULTS['ignore_case']))
   parser.add_argument('-r', '--regex', action='store_true',
-    help="""Use search string as a Python regex instead of a literal string to
-match. Default: """+str(OPT_DEFAULTS['regex']))
+    help='Use search string as a Python regex instead of a literal string to '
+      'match. Default: '+str(OPT_DEFAULTS['regex']))
   parser.add_argument('-l', '--limit', type=int,
-    help="""Maximum number of results to return. Default: %(default)s""")
+    help='Maximum number of results to return. Set to 0 for no limit. '
+      'Default: %(default)s')
   parser.add_argument('-L', '--links', dest='format', action='store_const',
     const='links',
-    help="""Print permalinks to the comments instead of the full info. Turns off
-      verbose mode, unless overriden. Default: """
+    help='Print permalinks to the comments instead of the full info. Turns off '
+      'verbose mode, unless overriden. Default: '
       +str(OPT_DEFAULTS['format'] == 'links'))
-  parser.add_argument('-s', '--stop-when-found', action='store_true',
-    help='Stop searching once a hit is found. Default: '
-      +str(OPT_DEFAULTS['stop_when_found']))
+  parser.add_argument('-f', '--feeling-lucky', dest='limit',
+    action='store_const', const=1,
+    help='Stop searching once the first hit is found. A shorthand for -l 1. '
+      'Default: False')
   parser.add_argument('-q', '--quiet', dest='quiet', action='store_true',
     help='Do not print anything but the results (even if there are none). '
       'Default: '+str(not OPT_DEFAULTS['verbose_mode']))
@@ -88,8 +89,8 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
   }
 
   hits = 0
+  printed = 0
   page_num = 0
-  hit_limit = False
   still_searching = True
   while still_searching:
     # make request
@@ -110,27 +111,31 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
     for comment in comments:
       assert 'comment' in comment, 'Error: no "comment" key in comment.'
       if is_match(comment['comment'], args):
-        if hits >= args.limit:
-          hit_limit = True
-          still_searching = False
-          break
         hits+=1
-        if args.format == 'human':
-          print imgurlib.human_format(comment)
-        elif args.format == 'links':
-          print imgurlib.link_format(comment)
-        if args.stop_when_found:
+        # At hit limit? End search.
+        if args.limit and hits == args.limit:
           still_searching = False
-          break
+        # Over hit limit? Don't print.
+        if args.limit and hits > args.limit:
+          still_searching = False
+        else:
+          if args.format == 'human':
+            print imgurlib.human_format(comment)
+          elif args.format == 'links':
+            print imgurlib.link_format(comment)
+          printed+=1
 
     page_num+=1
 
   if args.verbose_mode:
-    sys.stderr.write('Printed '+str(hits)+' hits.\n')
-    if hit_limit:
-      sys.stderr.write('Found more comments than are shown here. Raise the '
-        'search limit (currently '+str(args.limit)+')   with the -l option to '
-        'show more.\n')
+    sys.stderr.write('Printed '+str(printed)+' hits.\n')
+    if args.limit and hits >= args.limit:
+      if hits > args.limit:
+        sys.stderr.write('Found more comments than are shown here.')
+      elif hits == args.limit:
+        sys.stderr.write('There may be more matching comments than are shown here.')
+      sys.stderr.write(' Raise the search limit (currently '+str(args.limit)
+        +') with the -l option to show more.\n')
     else:
       sys.stderr.write('Search complete. All matching comments were printed.\n')
 
