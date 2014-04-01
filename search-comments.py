@@ -3,7 +3,6 @@ from __future__ import division
 import re
 import os
 import sys
-import json
 import argparse
 import imgurlib
 
@@ -93,24 +92,18 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
   hit_limit = False
   still_searching = True
   while still_searching:
+    # make request
     params['page'] = str(page_num)
-
-    (response, content) = imgurlib.make_request(
+    (response, comments) = imgurlib.make_request(
       api_path,
       headers,
       params=params,
       domain=API_DOMAIN
     )
-
     if response.status != 200:
       fail('Error: HTTP status '+str(response.status))
 
-    #TODO: read number of requests left in quota from response header
-
-    api_response = json.loads(content)
-    comments = api_response['data']
     assert is_iterable(comments), 'Error: Expected comments to be an iterable.'
-
     if len(comments) == 0:
       still_searching = False
     

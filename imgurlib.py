@@ -2,6 +2,7 @@
 from __future__ import division
 import os
 import sys
+import json
 import urllib
 import httplib
 import datetime
@@ -45,7 +46,11 @@ def make_request(path, headers, params=None, domain=API_DOMAIN):
   response = conex.getresponse()
   content = response.read()
   conex.close()
-  return (response, content)
+
+  api_response = json.loads(content)
+  json_data = api_response['data']
+
+  return (response, json_data)
 
 
 def human_format(comment):

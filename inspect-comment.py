@@ -3,7 +3,6 @@ from __future__ import division
 import re
 import os
 import sys
-import json
 import argparse
 import imgurlib
 
@@ -12,8 +11,7 @@ CONFIG_FILE = 'default.args'  # must be in same directory as script
 API_DOMAIN = 'api.imgur.com'
 API_PATH = '/3/comment/'
 
-OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose':True,
-  'stop_when_found':False}
+OPT_DEFAULTS = {}
 USAGE = "%(prog)s [options]"
 DESCRIPTION = """Get info on a comment, including the upvote/downvote ratio.
 """
@@ -62,10 +60,11 @@ like @default.args.""")
         +'"')
 
   if comment_id == '0':
-    fail('Error: That\'s the root comment! (It doesn\'t exist.)')
+    fail('Error: That\'s the root comment! (The comment you gave is not a '
+      'reply.)')
 
   path = API_PATH+comment_id
-  (response, content) = imgurlib.make_request(
+  (response, comment) = imgurlib.make_request(
     path,
     headers,
     domain=API_DOMAIN
@@ -74,10 +73,6 @@ like @default.args.""")
   if response.status != 200:
     fail('Error: HTTP status '+str(response.status))
 
-  #TODO: read number of requests left in quota from response header
-
-  api_response = json.loads(content)
-  comment = api_response['data']
   print imgurlib.human_format(comment)
 
 
