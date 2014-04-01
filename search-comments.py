@@ -5,6 +5,7 @@ import os
 import sys
 import argparse
 import imgurlib
+import imgurcache
 
 USER_AGENT = 'NBS comment-searcher'
 CONFIG_FILE = 'default.args'  # must be in same directory as script
@@ -79,45 +80,24 @@ def main():
   else:
     args.verbose_mode = bool(args.verbose or not args.quiet)
 
-  api_path = API_PATH_TEMPLATE.format(args.user)
-  headers = {
-    'Authorization':'Client-ID '+args.client_id,
-    'User-Agent':USER_AGENT,
-  }
-  params = {
-    'perPage':'100',
-  }
+  comment_pages = imgurcache.get_comment_chunks(args.user, args.client_id,
+    user_agent=USER_AGENT)
 
   hits = 0
   printed = 0
-  page_num = 0
-  still_searching = True
-  while still_searching:
-    # make request
-    params['page'] = str(page_num)
-    (response, comments) = imgurlib.make_request(
-      api_path,
-      headers,
-      params=params,
-      domain=API_DOMAIN
-    )
-    if response.status != 200:
-      fail('Error: HTTP status '+str(response.status))
-
-    assert is_iterable(comments), 'Error: Expected comments to be an iterable.'
-    if len(comments) == 0:
-      still_searching = False
+  done_searching = False
+  for comment_page in comment_pages:
     
-    for comment in comments:
+    for comment in comment_page:
       assert 'comment' in comment, 'Error: no "comment" key in comment.'
       if is_match(comment['comment'], args):
         hits+=1
         # At hit limit? End search.
         if args.limit and hits == args.limit:
-          still_searching = False
+          done_searching = True
         # Over hit limit? Don't print.
         if args.limit and hits > args.limit:
-          still_searching = False
+          done_searching = True
         else:
           if args.format == 'human':
             print imgurlib.human_format(comment)
@@ -125,27 +105,21 @@ def main():
             print imgurlib.link_format(comment)
           printed+=1
 
-    page_num+=1
+    if done_searching:
+      break
+
 
   if args.verbose_mode:
     sys.stderr.write('Printed '+str(printed)+' hits.\n')
     if args.limit and hits >= args.limit:
       if hits > args.limit:
-        sys.stderr.write('Found more comments than are shown here.')
+        sys.stderr.write('Found more matches than are shown here.')
       elif hits == args.limit:
         sys.stderr.write('There may be more matching comments than are shown here.')
       sys.stderr.write(' Raise the search limit (currently '+str(args.limit)
         +') with the -l option to show more.\n')
     else:
       sys.stderr.write('Search complete. All matching comments were printed.\n')
-
-
-def is_iterable(obj):
-  try:
-    iter(obj)
-  except TypeError:
-    return False
-  return True
 
 
 def is_match(text, args):
