@@ -9,11 +9,14 @@ import httplib
 import argparse
 import datetime
 
+USER_AGENT = 'NBS comment-searcher'
 CONFIG_FILE = 'default.args'  # must be in same directory as script
 API_DOMAIN = 'api.imgur.com'
 API_PATH_TEMPLATE = '/3/account/{}/comments'
+PERMALINK_TEMPLATE = 'https://imgur.com/gallery/seFLf1o/comment/{}'
 
-OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose':True,
+OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose_mode':True,
+  'verbose':None, 'quiet':None, 'regex':False, 'format':'human',
   'stop_when_found':False}
 USAGE = "%(prog)s [options]"
 DESCRIPTION = """Search all comments by an Imgur user."""
@@ -48,26 +51,39 @@ def main():
       +str(OPT_DEFAULTS['ignore_case']))
   parser.add_argument('-r', '--regex', action='store_true',
     help="""Use search string as a Python regex instead of a literal string to
-match. Off by default.""")
+match. Default: """+str(OPT_DEFAULTS['regex']))
   parser.add_argument('-l', '--limit', type=int,
     help="""Maximum number of results to return. Default: %(default)s""")
+  parser.add_argument('-L', '--links', dest='format', action='store_const',
+    const='links',
+    help="""Print permalinks to the comments instead of the full info. Turns off
+      verbose mode, unless overriden. Default: """
+      +str(OPT_DEFAULTS['format'] == 'links'))
   parser.add_argument('-s', '--stop-when-found', action='store_true',
     help='Stop searching once a hit is found. Default: '
       +str(OPT_DEFAULTS['stop_when_found']))
-  parser.add_argument('-q', '--quiet', dest='verbose', action='store_false',
+  parser.add_argument('-q', '--quiet', dest='quiet', action='store_true',
     help='Do not print anything but the results (even if there are none). '
-      'Default: '+str(not OPT_DEFAULTS['verbose']))
+      'Default: '+str(not OPT_DEFAULTS['verbose_mode']))
   parser.add_argument('-v', '--verbose', action='store_true',
     help='Verbose output (print more than just the results). Default: '
-      +str(OPT_DEFAULTS['verbose']))
+      +str(OPT_DEFAULTS['verbose_mode']))
 
   new_argv = include_args_from_file(sys.argv, CONFIG_FILE)
   args = parser.parse_args(new_argv)
+  
+  if args.verbose is None and args.quiet is None:
+    if args.format == 'human':
+      args.verbose_mode = OPT_DEFAULTS['verbose_mode']
+    elif args.format == 'links':
+      args.verbose_mode = False
+  else:
+    args.verbose_mode = bool(args.verbose or not args.quiet)
 
   api_path = API_PATH_TEMPLATE.format(args.user)
   headers = {
     'Authorization':'Client-ID '+args.client_id,
-    'User-Agent':'comment-searcher',
+    'User-Agent':USER_AGENT,
   }
   params = {
     'perPage':'100',
@@ -102,18 +118,21 @@ match. Off by default.""")
           still_searching = False
           break
         hits+=1
-        print format_comment(comment)
+        if args.format == 'human':
+          print human_format(comment)
+        elif args.format == 'links':
+          print link_format(comment)
         if args.stop_when_found:
           still_searching = False
           break
 
     page_num+=1
 
-  if args.verbose:
+  if args.verbose_mode:
     sys.stderr.write('Printed '+str(hits)+' hits.\n')
     if hit_limit:
       sys.stderr.write('Found more comments than are shown here. Raise the '
-        'search limit (currently '+str(args.limit)+')  with the -l option to '
+        'search limit (currently '+str(args.limit)+')   with the -l option to '
         'show more.\n')
     else:
       sys.stderr.write('Search complete. All matching comments were printed.\n')
@@ -171,7 +190,7 @@ def is_match(text, args):
       return args.query in text
 
 
-def format_comment(comment):
+def human_format(comment):
   required_keys = ('comment', 'image_id', 'parent_id', 'datetime', 'ups', 'downs')
   for key in required_keys:
     assert key in comment, 'Error: comment does not have required key '+key
@@ -182,8 +201,13 @@ def format_comment(comment):
     comment['parent_id'],
   )
   when = str(datetime.datetime.fromtimestamp(comment['datetime']))
-  output += "\t{}  {}/{}\n".format(when, comment['ups'], comment['downs'])
+  output += "\t{}  {}/{}".format(when, comment['ups'], comment['downs'])
   return output
+
+
+def link_format(comment):
+  assert 'id' in comment, 'Error: comment does not have the key "id"'
+  return PERMALINK_TEMPLATE.format(comment['id'])
 
 
 def fail(message):

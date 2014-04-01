@@ -3,7 +3,9 @@ set -ue
 
 ARGFILE="default.args"
 USAGE="\$ $(basename $0) [client-id]
-Default arg file: $ARGFILE"
+This is a crazy, hacky way of retrieving and formatting your current Imgur API
+limits. If no client-id is provided, it will read it from the default argument
+file "'"'$ARGFILE'".'
 
 if [[ $# -gt 0 ]]; then
   if [[ $1 == '-h' ]]; then
