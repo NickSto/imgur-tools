@@ -13,7 +13,7 @@ USER_AGENT = 'NBS comment-searcher'
 CONFIG_FILE = 'default.args'  # must be in same directory as script
 API_DOMAIN = 'api.imgur.com'
 API_PATH_TEMPLATE = '/3/account/{}/comments'
-PERMALINK_TEMPLATE = 'https://imgur.com/gallery/seFLf1o/comment/{}'
+PERMALINK_TEMPLATE = u'https://imgur.com/gallery/{}/comment/{}'
 
 OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose_mode':True,
   'verbose':None, 'quiet':None, 'regex':False, 'format':'human',
@@ -194,20 +194,20 @@ def human_format(comment):
   required_keys = ('comment', 'image_id', 'parent_id', 'datetime', 'ups', 'downs')
   for key in required_keys:
     assert key in comment, 'Error: comment does not have required key '+key
-  output = ''
-  output += comment['comment']+'\n'
-  output += "\thttps://imgur.com/gallery/{}/comment/{}\n".format(
+  output = u''
+  output += comment['comment']+u'\n'
+  output += u"\thttps://imgur.com/gallery/{}/comment/{}\n".format(
     comment['image_id'],
     comment['parent_id'],
   )
-  when = str(datetime.datetime.fromtimestamp(comment['datetime']))
-  output += "\t{}  {}/{}".format(when, comment['ups'], comment['downs'])
+  when = unicode(datetime.datetime.fromtimestamp(comment['datetime']))
+  output += u"\t{}  {}/{}".format(when, comment['ups'], comment['downs'])
   return output
 
 
 def link_format(comment):
   assert 'id' in comment, 'Error: comment does not have the key "id"'
-  return PERMALINK_TEMPLATE.format(comment['id'])
+  return PERMALINK_TEMPLATE.format(comment['image_id'], comment['id'])
 
 
 def fail(message):
