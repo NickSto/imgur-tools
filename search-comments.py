@@ -9,12 +9,12 @@ import urllib
 import httplib
 import argparse
 import datetime
+import imgurlib
 
 USER_AGENT = 'NBS comment-searcher'
 CONFIG_FILE = 'default.args'  # must be in same directory as script
 API_DOMAIN = 'api.imgur.com'
 API_PATH_TEMPLATE = '/3/account/{}/comments'
-PERMALINK_TEMPLATE = u'https://imgur.com/gallery/{}/comment/{}'
 
 OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose_mode':True,
   'verbose':None, 'quiet':None, 'regex':False, 'format':'human',
@@ -72,7 +72,7 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
     help='Verbose output (print more than just the results). Default: '
       +str(OPT_DEFAULTS['verbose_mode']))
 
-  new_argv = include_args_from_file(sys.argv, CONFIG_FILE)
+  new_argv = imgurlib.include_args_from_file(sys.argv, CONFIG_FILE)
   args = parser.parse_args(new_argv)
   
   if args.verbose is None and args.quiet is None:
@@ -99,7 +99,12 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
   while still_searching:
     params['page'] = str(page_num)
 
-    (response, content) = make_request(api_path, params, headers)
+    (response, content) = imgurlib.make_request(
+      api_path,
+      headers,
+      params=params,
+      domain=API_DOMAIN
+    )
 
     if response.status != 200:
       fail('Error: HTTP status '+str(response.status))
@@ -122,9 +127,9 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
           break
         hits+=1
         if args.format == 'human':
-          print human_format(comment)
+          print imgurlib.human_format(comment)
         elif args.format == 'links':
-          print link_format(comment)
+          print imgurlib.link_format(comment)
         if args.stop_when_found:
           still_searching = False
           break
@@ -139,38 +144,6 @@ match. Default: """+str(OPT_DEFAULTS['regex']))
         'show more.\n')
     else:
       sys.stderr.write('Search complete. All matching comments were printed.\n')
-
-
-def include_args_from_file(argv, default_file, prefix='@'):
-  """Edit sys.argv to add "default_file" as an arguments file with the prefix
-  character ("@" by default).
-  "default_file" should be the base filename, and it should be in the same
-  directory as the script itself.
-  Returns a a version of sys.argv with the first element removed, ready to be
-  given as an argument to argparse.ArgumentParser.parse_args().
-  If a prefixed argument is already present, it will make no changes."""
-  for arg in argv:
-    if arg.startswith(prefix):
-      return argv[1:]
-  script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-  default_file_path = os.path.join(script_dir, default_file)
-  if not os.path.isfile(default_file_path):
-    return argv[1:]
-  return [prefix+default_file_path] + argv[1:]
-
-
-def make_request(path, params, headers):
-  conex = httplib.HTTPSConnection(API_DOMAIN)
-  conex.request(
-    'GET',
-    path+'?'+urllib.urlencode(params),
-    None,
-    headers
-  )
-  response = conex.getresponse()
-  content = response.read()
-  conex.close()
-  return (response, content)
 
 
 def is_iterable(obj):
@@ -192,26 +165,6 @@ def is_match(text, args):
       return args.query.lower() in text.lower()
     else:
       return args.query in text
-
-
-def human_format(comment):
-  required_keys = ('comment', 'image_id', 'parent_id', 'datetime', 'ups', 'downs')
-  for key in required_keys:
-    assert key in comment, 'Error: comment does not have required key '+key
-  output = u''
-  output += comment['comment']+u'\n'
-  output += u"\thttps://imgur.com/gallery/{}/comment/{}\n".format(
-    comment['image_id'],
-    comment['parent_id'],
-  )
-  when = unicode(datetime.datetime.fromtimestamp(comment['datetime']))
-  output += u"\t{}  {}/{}".format(when, comment['ups'], comment['downs'])
-  return output
-
-
-def link_format(comment):
-  assert 'id' in comment, 'Error: comment does not have the key "id"'
-  return PERMALINK_TEMPLATE.format(comment['image_id'], comment['id'])
 
 
 def fail(message):
