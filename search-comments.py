@@ -38,9 +38,11 @@ def main():
   parser.add_argument('query',
     help="""String to search for.""")
   parser.add_argument('-u', '--user', required=True,
-    help="""The username whose comments will be searched. Required.""")
+    help="""The username whose comments will be searched. Required, if not
+provided by an @ file like @default.args.""")
   parser.add_argument('-C', '--client-id', required=True,
-    help="""Imgur API Client-ID to use. Required.""")
+    help="""Imgur API Client-ID to use. Required, if not provided by an @ file
+like @default.args.""")
   parser.add_argument('-c', '--case-sensitive', dest='ignore_case',
     action='store_false',
     help='Don\'t ignore case when searching. Default: '
