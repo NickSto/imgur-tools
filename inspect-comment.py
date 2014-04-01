@@ -1,20 +1,16 @@
 #!/usr/bin/env python
-#TODO: move common code out to module
 from __future__ import division
 import re
 import os
 import sys
 import json
-import urllib
-import httplib
 import argparse
-import datetime
 import imgurlib
 
+USER_AGENT = 'NBS comment-inspector'
 CONFIG_FILE = 'default.args'  # must be in same directory as script
 API_DOMAIN = 'api.imgur.com'
 API_PATH = '/3/comment/'
-USER_AGENT = 'NBS comment-inspector'
 
 OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose':True,
   'stop_when_found':False}

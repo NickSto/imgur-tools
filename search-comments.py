@@ -1,14 +1,10 @@
 #!/usr/bin/env python
-#TODO: move common code out to module
 from __future__ import division
 import re
 import os
 import sys
 import json
-import urllib
-import httplib
 import argparse
-import datetime
 import imgurlib
 
 USER_AGENT = 'NBS comment-searcher'
