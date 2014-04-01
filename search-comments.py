@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#TODO: move common code out to module
 from __future__ import division
 import re
 import os
@@ -151,7 +152,8 @@ def include_args_from_file(argv, default_file, prefix='@'):
   for arg in argv:
     if arg.startswith(prefix):
       return argv[1:]
-  default_file_path = os.path.join(os.path.dirname(sys.argv[0]), default_file)
+  script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+  default_file_path = os.path.join(script_dir, default_file)
   if not os.path.isfile(default_file_path):
     return argv[1:]
   return [prefix+default_file_path] + argv[1:]
