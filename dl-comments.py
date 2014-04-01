@@ -6,13 +6,14 @@ import sys
 import json
 import argparse
 import imgurlib
+import imgurcache
 
 USER_AGENT = 'NBS comment-archiver'
 CONFIG_FILE = 'default.args'  # must be in same directory as script
 API_DOMAIN = 'api.imgur.com'
 API_PATH_TEMPLATE = '/3/account/{}/comments'
 
-OPT_DEFAULTS = {'limit':None, 'verbose_mode':True, 'verbose':None,'quiet':None,}
+OPT_DEFAULTS = {'limit':0, 'verbose':None,'quiet':None}
 USAGE = "%(prog)s [options]"
 DESCRIPTION = """Download all comments by an Imgur user. By default, comments
 will be printed to stdout in JSON format. Individual comments will be in the
@@ -42,84 +43,35 @@ def main():
   parser.add_argument('-o', '--output-file',
     help='A file to save the comments in, instead of printing to stdout.')
   parser.add_argument('-l', '--limit', type=int,
-    help='Maximum number of comments to output. This is a rough limit. '
-      'Comments are output a page at a time, so the actual number returned may '
-      'be higher. Default: no limit.')
+    help='Maximum number of comments to output. Default: no limit.')
   parser.add_argument('-q', '--quiet', dest='quiet', action='store_true',
     help='Do not print anything but the results (even if there are none). '
-      'Default: '+str(not OPT_DEFAULTS['verbose_mode']))
+      'Default: False')
   parser.add_argument('-v', '--verbose', action='store_true',
-    help='Verbose output (print more than just the results). Default: '
-      +str(OPT_DEFAULTS['verbose_mode']))
+    help='Verbose output (print more than just the results). Default: True')
 
   new_argv = imgurlib.include_args_from_file(sys.argv, CONFIG_FILE)
   args = parser.parse_args(new_argv)
   
   if args.verbose:
-    args.verbose_mode = True
-  if args.quiet:
-    args.verbose_mode = False
+    verbosity = 2
+  elif args.quiet:
+    verbosity = 0
+  else:
+    verbosity = 2
 
-  api_path = API_PATH_TEMPLATE.format(args.user)
-  headers = {
-    'Authorization':'Client-ID '+args.client_id,
-    'User-Agent':USER_AGENT,
-  }
-  params = {
-    'perPage':'100',
-  }
-
-  page_num = 0
-  reached_end = False
-  all_comments = []
-  still_searching = True
-  while still_searching:
-    # make request
-    params['page'] = str(page_num)
-    (response, comments) = imgurlib.make_request(
-      api_path,
-      headers,
-      params=params,
-      domain=API_DOMAIN
-    )
-    if response.status != 200:
-      fail('Error: HTTP status '+str(response.status))
-
-    assert is_iterable(comments), 'Error: Expected comments to be an iterable.'
-    comments_returned = len(comments)
-
-    if comments_returned == 0:
-      reached_end = True
-      still_searching = False
-    else:
-      all_comments.extend(comments)
-      if args.limit and len(all_comments) >= args.limit:
-        still_searching = False
-
-    page_num+=1
+  comment_generator = imgurcache.get_comments(args.user, args.client_id,
+    limit=args.limit, user_agent=USER_AGENT, verbosity=verbosity)
+  comments = list(comment_generator)
 
   if args.output_file:
     with open(args.output_file, 'w') as filehandle:
-      json.dump(all_comments, filehandle)
+      json.dump(comments, filehandle)
   else:
-    print json.dumps(all_comments)
+    print json.dumps(comments)
 
-  if args.verbose_mode:
-    sys.stderr.write('Saved '+str(len(all_comments))+' comments.\n')
-    if reached_end:
-      sys.stderr.write('All comments were retrieved.\n')
-    else:
-      sys.stderr.write('Found more comments than the limit. Raise the search '
-        'limit (currently '+str(args.limit)+') with the -l option to retrieve '
-        'more.\n')
-
-
-def is_iterable(obj):
-  try:
-    iter(obj)
-  except TypeError:
-    return False
-  return True
+  if verbosity > 0:
+    sys.stderr.write('Saved '+str(len(comments))+' comments.\n')
 
 
 def fail(message):
