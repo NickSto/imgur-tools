@@ -8,8 +8,16 @@ import httplib
 import datetime
 
 API_DOMAIN = 'api.imgur.com'
-PERMALINK_TEMPLATE = u'https://imgur.com/gallery/{}/comment/{}'
 
+LINK_FORMAT = u'https://imgur.com/gallery/{image_id}/comment/{id}'
+HUMAN_FORMAT = u"""{comment}
+\thttps://imgur.com/gallery/{image_id}/comment/{parent_id}
+\t{when}  +{ups}/-{downs}"""
+DETAILS_FORMAT = u"""{comment}
+\t{author}
+\t{when}  {points} = +{ups} -{downs}
+\tthis:   https://imgur.com/gallery/{image_id}/comment/{id}
+\tparent: https://imgur.com/gallery/{image_id}/comment/{parent_id}"""
 
 def include_args_from_file(argv, default_file, prefix='@'):
   """Edit sys.argv to add "default_file" as an arguments file with the prefix
@@ -54,23 +62,18 @@ def make_request(path, headers, params=None, domain=API_DOMAIN):
 
 
 def human_format(comment):
-  required_keys = ('comment', 'image_id', 'parent_id', 'datetime', 'ups', 'downs')
-  for key in required_keys:
-    assert key in comment, 'Error: comment does not have required key '+key
-  output = u''
-  output += comment['comment']+u'\n'
-  output += u"\thttps://imgur.com/gallery/{}/comment/{}\n".format(
-    comment['image_id'],
-    comment['parent_id'],
-  )
-  when = unicode(datetime.datetime.fromtimestamp(comment['datetime']))
-  output += u"\t{}  {}/{}".format(when, comment['ups'], comment['downs'])
-  return output
+  comment['when'] = unicode(datetime.datetime.fromtimestamp(comment['datetime']))
+  return HUMAN_FORMAT.format(**comment)
+
+
+def details_format(comment):
+  comment['when'] = unicode(datetime.datetime.fromtimestamp(comment['datetime']))
+  return DETAILS_FORMAT.format(**comment)
 
 
 def link_format(comment):
   assert 'id' in comment, 'Error: comment does not have the key "id"'
-  return PERMALINK_TEMPLATE.format(comment['image_id'], comment['id'])
+  return LINK_FORMAT.format(**comment)
 
 
 if __name__ == '__main__':

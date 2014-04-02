@@ -15,7 +15,7 @@ if [[ $# -gt 0 ]]; then
   clientid=$1
 else
   script_dir=$(dirname $0)
-  clientid=$(grep -A 1 -- '--client-id' "$ARGFILE" | tail -n 1)
+  clientid=$(grep -A 1 -- '--client-id' "$script_dir/$ARGFILE" | tail -n 1)
 fi
 
 if [[ ! $clientid ]]; then
