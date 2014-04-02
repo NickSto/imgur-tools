@@ -20,6 +20,11 @@ DETAILS_FORMAT = u"""{comment}
 \tthis:   https://imgur.com/gallery/{image_id}/comment/{id}
 \tparent: https://imgur.com/gallery/{image_id}/comment/{parent_id}"""
 
+HTTP_MSGS = {
+  429:'Exceeded request quota (HTTP status {})'
+}
+HTTP_MSG_DEFAULT = 'HTTP status {}'
+
 def include_args_from_file(argv, default_file, prefix='@'):
   """Edit sys.argv to add "default_file" as an arguments file with the prefix
   character ("@" by default).
@@ -83,6 +88,21 @@ def details_format(comment):
 def link_format(comment):
   assert 'id' in comment, 'Error: comment does not have the key "id"'
   return LINK_FORMAT.format(**comment)
+
+
+def handle_status(status, fatal=True):
+  if status != 200:
+    message_tmpl = HTTP_MSGS.get(status, HTTP_MSG_DEFAULT)
+    message = message_tmpl.format(status)
+    if fatal:
+      fail('Error: '+message)
+    else:
+      raise httplib.HTTPException(message)
+
+
+def fail(message):
+  sys.stderr.write(str(message)+'\n')
+  sys.exit(1)
 
 
 if __name__ == '__main__':

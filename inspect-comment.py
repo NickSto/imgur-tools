@@ -70,8 +70,7 @@ def main():
       user_agent=USER_AGENT,
       domain=API_DOMAIN
     )
-    if response.status != 200:
-      fail('Error: HTTP status '+str(response.status))
+    imgurlib.handle_status(response.status)
 
     print imgurlib.details_format(comment)
 

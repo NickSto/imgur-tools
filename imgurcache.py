@@ -58,8 +58,7 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
       params=params,
       domain=API_DOMAIN
     )
-    if response.status != 200:
-      raise httplib.HTTPException('HTTP status '+str(response.status))
+    imgurlib.handle_status(response.status, fatal=False)
 
     assert is_iterable(comments_page), ('Error: Expected comments to be an '
       'iterable.')
