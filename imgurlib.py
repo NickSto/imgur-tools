@@ -25,6 +25,18 @@ HTTP_MSGS = {
 }
 HTTP_MSG_DEFAULT = 'HTTP status {}'
 
+
+class NearQuotaException(Exception):
+  """Raised when an API response header indicates you've almost reached either
+  your UserLimit or your ClientLimit."""
+  def __init__(self, message=None, limit=None):
+    if message:
+      Exception.__init__(self, message)
+    assert limit in (None, 'user', 'client'), (
+      'Error: NearQuotaException.limit must be "user", "client", or None.')
+    self.limit = limit
+
+
 def include_args_from_file(argv, default_file, prefix='@'):
   """Edit sys.argv to add "default_file" as an arguments file with the prefix
   character ("@" by default).
@@ -66,13 +78,40 @@ def make_request(path, client_id, user_agent=USER_AGENT, params=None,
   )
   
   response = conex.getresponse()
+  message = near_quota(response)
+  if message:
+    raise NearQuotaException(message)
+
   content = response.read()
   conex.close()
-
   api_response = json.loads(content)
   json_data = api_response['data']
 
   return (response, json_data)
+
+
+def near_quota(response, margin=1):
+  """Return a true value if either remaining is within "margin" of the limit,
+  false if not.
+  If near a quota, the return value will be a str with details.
+  If the proper headers cannot be found, returns None."""
+  try:
+    user_limit = int(response.getheader('X-RateLimit-UserLimit'))
+    user_remaining = int(response.getheader('X-RateLimit-UserRemaining'))
+    client_limit = int(response.getheader('X-RateLimit-ClientLimit'))
+    client_remaining = int(response.getheader('X-RateLimit-ClientRemaining'))
+  except (ValueError, TypeError):
+    return
+
+  if user_remaining <= margin:
+    return "UserRemaining: {}, UserLimit: {}".format(
+      user_remaining, user_limit)
+  elif client_remaining <= margin:
+    return "ClientRemaining: {}, ClientLimit: {}".format(
+      client_remaining, client_limit)
+  else:
+    return False
+  
 
 
 def human_format(comment):
