@@ -8,6 +8,7 @@ import httplib
 import datetime
 
 API_DOMAIN = 'api.imgur.com'
+USER_AGENT = 'NBS client'
 
 LINK_FORMAT = u'https://imgur.com/gallery/{image_id}/comment/{id}'
 HUMAN_FORMAT = u"""{comment}
@@ -37,7 +38,15 @@ def include_args_from_file(argv, default_file, prefix='@'):
   return [prefix+default_file_path] + argv[1:]
 
 
-def make_request(path, headers, params=None, domain=API_DOMAIN):
+def make_request(path, client_id, user_agent=USER_AGENT, params=None,
+    headers=None, domain=API_DOMAIN):
+  
+  if headers is None:
+    headers = {
+      'Authorization':'Client-ID '+client_id,
+      'User-Agent':user_agent,
+    }
+
   if params is None:
     path_and_params = path
   else:

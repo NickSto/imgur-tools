@@ -40,10 +40,6 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
   individual ones. (Each list == one page == one request.)"""
 
   api_path = API_PATH_TEMPLATE.format(user)
-  headers = {
-    'Authorization':'Client-ID '+client_id,
-    'User-Agent':user_agent,
-  }
   params = {
     'perPage':str(per_page),
   }
@@ -57,7 +53,8 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
     params['page'] = str(page_num)
     (response, comments_page) = imgurlib.make_request(
       api_path,
-      headers,
+      client_id,
+      user_agent=user_agent,
       params=params,
       domain=API_DOMAIN
     )

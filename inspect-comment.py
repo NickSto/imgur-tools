@@ -46,11 +46,6 @@ def main():
   new_argv = imgurlib.include_args_from_file(sys.argv, CONFIG_FILE)
   args = parser.parse_args(new_argv)
 
-  headers = {
-    'Authorization':'Client-ID '+args.client_id,
-    'User-Agent':USER_AGENT,
-  }
-
   match = re.search(PERMALINK_PATTERN, args.comment_identifier)
   if match:
     comment_id = match.group(1)
@@ -71,7 +66,8 @@ def main():
     path = API_PATH+comment_id
     (response, comment) = imgurlib.make_request(
       path,
-      headers,
+      args.client_id,
+      user_agent=USER_AGENT,
       domain=API_DOMAIN
     )
     if response.status != 200:
