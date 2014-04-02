@@ -80,7 +80,7 @@ def main():
   else:
     args.verbose_mode = bool(args.verbose or not args.quiet)
 
-  comments = imgurcache.get_live_comments(args.user, args.client_id,
+  comments = imgurcache.get_cached_and_live_comments(args.user, args.client_id,
     user_agent=USER_AGENT)
 
   hits = 0
