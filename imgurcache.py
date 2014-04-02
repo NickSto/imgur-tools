@@ -102,11 +102,20 @@ def is_iterable(obj):
   return True
 
 
-def get_cached_and_live_comments(user, client_id):
+def get_cached_and_live_comments(user, client_id, user_agent=USER_AGENT,
+    verbosity=0):
   """Yield all comments for "user", drawing on cache files and updates via the
   API on the backend.
   Returns a generator that yields one comment at a time, starting with the
   newest."""
+  cached_comments = get_cached_comments(user)
+  if len(cached_comments) == 0:
+    cutoff_date = 0
+  else:
+    cutoff_date = cached_comments[0]['datetime'] + 1
+  live_comments = get_live_comments(user, client_id, cutoff_date=cutoff_date,
+    user_agent=USER_AGENT, verbosity=0)
+  return itertools.chain(live_comments, cached_comments)
 
 
 def get_cached_comments(user, cache_dir=None):
@@ -116,12 +125,15 @@ def get_cached_comments(user, cache_dir=None):
   returned. If "cache_dir" is not given, it will use a directory named "cache"
   in the script directory."""
   if cache_dir is None:
-    script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+    if sys.argv[0] == '':
+      script_dir = os.path.realpath(sys.argv[0])
+    else:
+      script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
     cache_dir = os.path.join(script_dir, CACHE_DIRNAME)
   cache_file = os.path.join(cache_dir, user+'.json')
   if os.path.isfile(cache_file):
     with open(cache_file) as filehandle:
-      return json.load(cache_file)
+      return json.load(filehandle)
   else:
     return []
 
