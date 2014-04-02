@@ -33,12 +33,15 @@ def main():
   parser.set_defaults(**OPT_DEFAULTS)
 
   parser.add_argument('comment_identifier',
-    help="""The comment ID or the URL to the comment (permalink).""")
+    help='The comment ID or the URL to the comment (permalink).')
   parser.add_argument('-C', '--client-id', required=True,
-    help="""Imgur API Client-ID to use. Required, if not provided by an @ file
-like @default.args.""")
+    help='Imgur API Client-ID to use. Required, if not provided by an @ file '
+      'like @default.args.')
   parser.add_argument('-u', '--user',
-    help="""Imgur username. For compatibility only; not required.""")
+    help='Imgur username. For compatibility only; not required.')
+  parser.add_argument('-r', '--recursive', action='store_true',
+    help='Show the comment, then show its parent, etc, all the way up the '
+      'thread.')
 
   new_argv = imgurlib.include_args_from_file(sys.argv, CONFIG_FILE)
   args = parser.parse_args(new_argv)
@@ -63,17 +66,23 @@ like @default.args.""")
     fail('Error: That\'s the root comment! (The comment you gave is not a '
       'reply.)')
 
-  path = API_PATH+comment_id
-  (response, comment) = imgurlib.make_request(
-    path,
-    headers,
-    domain=API_DOMAIN
-  )
+  while comment_id != '0':
 
-  if response.status != 200:
-    fail('Error: HTTP status '+str(response.status))
+    path = API_PATH+comment_id
+    (response, comment) = imgurlib.make_request(
+      path,
+      headers,
+      domain=API_DOMAIN
+    )
+    if response.status != 200:
+      fail('Error: HTTP status '+str(response.status))
 
-  print imgurlib.human_format(comment)
+    print imgurlib.details_format(comment)
+
+    if args.recursive:
+      comment_id = str(comment['parent_id'])
+    else:
+      break
 
 
 def fail(message):
