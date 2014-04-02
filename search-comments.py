@@ -80,44 +80,26 @@ def main():
   else:
     args.verbose_mode = bool(args.verbose or not args.quiet)
 
-  comment_pages = imgurcache.get_live_comment_chunks(args.user, args.client_id,
+  comments = imgurcache.get_live_comments(args.user, args.client_id,
     user_agent=USER_AGENT)
 
   hits = 0
-  printed = 0
-  done_searching = False
-  for comment_page in comment_pages:
-    
-    for comment in comment_page:
-      assert 'comment' in comment, 'Error: no "comment" key in comment.'
-      if is_match(comment['comment'], args):
-        hits+=1
-        # At hit limit? End search.
-        if args.limit and hits == args.limit:
-          done_searching = True
-        # Over hit limit? Don't print.
-        if args.limit and hits > args.limit:
-          done_searching = True
-        else:
-          if args.format == 'human':
-            print imgurlib.human_format(comment)
-          elif args.format == 'links':
-            print imgurlib.link_format(comment)
-          printed+=1
-
-    if done_searching:
+  for comment in comments:
+    if is_match(comment['comment'], args):
+      hits+=1
+      if args.format == 'human':
+        print imgurlib.human_format(comment)
+      elif args.format == 'links':
+        print imgurlib.link_format(comment)
+    if args.limit and hits >= args.limit:
       break
 
-
   if args.verbose_mode:
-    sys.stderr.write('Printed '+str(printed)+' hits.\n')
+    sys.stderr.write('Found '+str(hits)+' hits.\n')
     if args.limit and hits >= args.limit:
-      if hits > args.limit:
-        sys.stderr.write('Found more matches than are shown here.')
-      elif hits == args.limit:
-        sys.stderr.write('There may be more matching comments than are shown here.')
-      sys.stderr.write(' Raise the search limit (currently '+str(args.limit)
-        +') with the -l option to show more.\n')
+      sys.stderr.write('Reached the results limit. There may be more '
+        'matching comments than are shown   here. Raise the search limit '
+        '(currently '+str(args.limit)+') with the -l option to show more.\n')
     else:
       sys.stderr.write('Search complete. All matching comments were printed.\n')
 
