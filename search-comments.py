@@ -80,7 +80,7 @@ def main():
   else:
     args.verbose_mode = bool(args.verbose or not args.quiet)
 
-  comment_pages = imgurcache.get_comment_chunks(args.user, args.client_id,
+  comment_pages = imgurcache.get_live_comment_chunks(args.user, args.client_id,
     user_agent=USER_AGENT)
 
   hits = 0

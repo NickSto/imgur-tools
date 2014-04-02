@@ -60,7 +60,7 @@ def main():
   else:
     verbosity = 2
 
-  comment_generator = imgurcache.get_comments(args.user, args.client_id,
+  comment_generator = imgurcache.get_live_comments(args.user, args.client_id,
     limit=args.limit, user_agent=USER_AGENT, verbosity=verbosity)
   comments = list(comment_generator)
 
