@@ -9,7 +9,8 @@ import imgurlib
 
 USER_AGENT = 'NBS comment-downloader'
 API_DOMAIN = 'api.imgur.com'
-API_PATH_TEMPLATE = '/3/account/{}/comments'
+COMMENTS_PATH = '/3/account/{}/comments'
+ACCOUNT_PATH = '/3/account/{}'
 CACHE_DIRNAME = 'cache'
 
 
@@ -39,7 +40,7 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
   """Same as get_comments(), but yield lists of comments at a time instead of
   individual ones. (Each list == one page == one request.)"""
 
-  api_path = API_PATH_TEMPLATE.format(user)
+  api_path = COMMENTS_PATH.format(user)
   params = {
     'perPage':str(per_page),
   }
@@ -104,7 +105,8 @@ def get_cached_and_live_comments(user, client_id, update_cache=True,
   API on the backend.
   Returns a generator that yields one comment at a time, starting with the
   newest."""
-  cached_comments = get_cached_comments(user)
+  account_id = username_to_id(user, client_id, user_agent=user_agent)
+  cached_comments = get_cached_comments(account_id)
   if len(cached_comments) == 0:
     cutoff_date = 0
   else:
@@ -114,27 +116,28 @@ def get_cached_and_live_comments(user, client_id, update_cache=True,
   
   combined_comments = itertools.chain(live_comments, cached_comments)
 
+  # overwrite cache with all live + cached comments
   if update_cache:
-    cache_file = get_cache_filename(user)
+    cache_file = get_cache_filename(account_id)
     cache_dir = os.path.dirname(cache_file)
     if not os.path.exists(cache_dir):
       os.makedirs(cache_dir)
     combined_comments_list = list(combined_comments)
     with open(cache_file, 'w') as filehandle:
       json.dump(combined_comments_list, filehandle)
-    return combined_comments_list
+    # have to return a generator, not a list
+    return (comment for comment in combined_comments_list)
   else:
     return combined_comments
 
 
-
-def get_cached_comments(user, cache_dir=None):
-  """Return cached comments for "user", if any exist on disk.
-  This will look for a file named "user.json" in "cache_dir". If one is found,
-  all comments in it will be returned in a list. Otherwise, an empty list is
-  returned. If "cache_dir" is not given, it will use a directory named "cache"
-  in the script directory."""
-  cache_file = get_cache_filename(user, cache_dir=cache_dir)
+def get_cached_comments(account_id, cache_dir=None):
+  """Return cached comments for "account_id", if any exist on disk.
+  This will look for a file named "account_id.json" in "cache_dir". If one is
+  found, all comments in it will be returned in a list. Otherwise, an empty list
+  is returned. If "cache_dir" is not given, it will use a directory named
+  "cache" in the script directory."""
+  cache_file = get_cache_filename(account_id, cache_dir=cache_dir)
   if os.path.isfile(cache_file):
     with open(cache_file) as filehandle:
       return json.load(filehandle)
@@ -142,14 +145,26 @@ def get_cached_comments(user, cache_dir=None):
     return []
 
 
-def get_cache_filename(user, cache_dir=None):
+def get_cache_filename(account_id, cache_dir=None):
   if cache_dir is None:
     if sys.argv[0] == '':
       script_dir = os.path.realpath(sys.argv[0])
     else:
       script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
     cache_dir = os.path.join(script_dir, CACHE_DIRNAME)
-  return os.path.join(cache_dir, user+'.json')
+  return os.path.join(cache_dir, account_id+'.json')
+
+
+def username_to_id(user, client_id, user_agent=USER_AGENT):
+  api_path = ACCOUNT_PATH.format(user)
+  (response, account_data) = imgurlib.make_request(
+    api_path,
+    client_id,
+    user_agent=user_agent,
+    domain=API_DOMAIN
+  )
+  imgurlib.handle_status(response.status, fatal=False)
+  return str(account_data['id'])
 
 
 def fail(message):
