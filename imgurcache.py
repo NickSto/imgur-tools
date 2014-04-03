@@ -45,8 +45,8 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
     'perPage':str(per_page),
   }
 
+  total = 0
   page_num = 0
-  all_comments = []
   still_searching = True
   while still_searching:
 
@@ -72,7 +72,6 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
       comments_group = comments_page
     else:
       comments_group = []
-      total = len(all_comments)
       for comment in comments_page:
         total+=1
         # Exceeded limit? Discard comment.
@@ -170,6 +169,3 @@ def username_to_id(user, client_id, user_agent=USER_AGENT):
 def fail(message):
   sys.stderr.write(message+"\n")
   sys.exit(1)
-
-if __name__ == '__main__':
-  main()
