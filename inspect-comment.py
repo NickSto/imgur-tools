@@ -61,6 +61,7 @@ def main():
     fail('Error: That\'s the root comment! (The comment you gave is not a '
       'reply.)')
 
+  comments = []
   while comment_id != '0':
 
     path = API_PATH+comment_id
@@ -72,12 +73,15 @@ def main():
     )
     imgurlib.handle_status(response.status)
 
-    print imgurlib.details_format(comment)
+    comments.append(comment)
 
     if args.recursive:
       comment_id = str(comment['parent_id'])
     else:
       break
+
+  for comment in reversed(comments):
+    print imgurlib.details_format(comment)
 
 
 def fail(message):
