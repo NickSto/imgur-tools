@@ -84,7 +84,11 @@ def make_request(path, client_id, user_agent=USER_AGENT, params=None,
 
   content = response.read()
   conex.close()
-  api_response = json.loads(content)
+  try:
+    api_response = json.loads(content)
+  except ValueError:
+    sys.stderr.write('JSON parsing error on content:\n'+content[:80]+'\n')
+    raise
   json_data = api_response['data']
 
   return (response, json_data)
