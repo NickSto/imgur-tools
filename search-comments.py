@@ -50,6 +50,8 @@ def main():
   parser.add_argument('-r', '--regex', action='store_true',
     help='Use search string as a Python regex instead of a literal string to '
       'match. Default: '+str(OPT_DEFAULTS['regex']))
+  parser.add_argument('-v', '--invert', action='store_true',
+    help='Find comments that *do not* match the query. Like grep\'s "-v".')
   parser.add_argument('-l', '--limit', type=int,
     help='Maximum number of results to return. Set to 0 for no limit. '
       'Default: %(default)s')
@@ -65,7 +67,7 @@ def main():
   parser.add_argument('-q', '--quiet', dest='quiet', action='store_true',
     help='Do not print anything but the results (even if there are none). '
       'Default: '+str(not OPT_DEFAULTS['verbose_mode']))
-  parser.add_argument('-v', '--verbose', action='store_true',
+  parser.add_argument('-V', '--verbose', action='store_true',
     help='Verbose output (print more than just the results). Default: '
       +str(OPT_DEFAULTS['verbose_mode']))
 
@@ -85,7 +87,8 @@ def main():
 
   hits = 0
   for comment in comments:
-    if is_match(comment['comment'], args):
+    match = is_match(comment['comment'], args)
+    if (not args.invert and match) or (args.invert and not match):
       hits+=1
       if args.format == 'human':
         print imgurlib.human_format(comment)
