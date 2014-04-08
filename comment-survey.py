@@ -8,7 +8,7 @@ import argparse
 import imgurlib
 
 CONFIG_FILE = 'default.args'  # must be in same directory as script
-RANDOM_PATH = '/3/gallery/random/random'
+RANDOM_PATH = '/3/gallery/random/random/{}'
 COMMENTS_PATH = '/3/gallery/{}/comments/new'
 COMMENT_COUNT_PATH = '/3/account/{}/comments/count'
 
@@ -45,9 +45,12 @@ def main():
   args = parser.parse_args(new_argv)
 
   # get random set of images
-  (response, images) = imgurlib.make_request(RANDOM_PATH, args.client_id)
+  page = random.randrange(0,51)
+  path = RANDOM_PATH.format(page)
+  (response, images) = imgurlib.make_request(path, args.client_id)
   imgurlib.handle_status(response.status)
 
+  sys.excepthook = catch_quota_except
   for image in images:
     # get comments per image
     path = COMMENTS_PATH.format(image['id'])
@@ -72,6 +75,13 @@ def main():
         sys.stderr.write('Non-integer count: '+str(count)[:70]+'\n')
         continue
       print "{}\t{}".format(username, count)
+
+
+def catch_quota_except(type_, value, traceback):
+  if isinstance(value, imgurlib.NearQuotaException):
+    sys.exit(0)
+  else:
+    sys.__excepthook__(type_, value, traceback)
 
 
 def fail(message):
