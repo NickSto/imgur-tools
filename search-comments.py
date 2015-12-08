@@ -13,7 +13,7 @@ API_DOMAIN = 'api.imgur.com'
 API_PATH_TEMPLATE = '/3/account/{}/comments'
 
 OPT_DEFAULTS = {'limit':20, 'ignore_case':True, 'verbose_mode':True,
-  'verbose':None, 'quiet':None, 'regex':False, 'format':'human'}
+  'verbose':None, 'quiet':None, 'format':'human'}
 USAGE = "%(prog)s [options]"
 DESCRIPTION = """Search all comments by an Imgur user."""
 EPILOG = """You can include command line arguments from a file by including the
@@ -49,7 +49,7 @@ def main():
       +str(OPT_DEFAULTS['ignore_case']))
   parser.add_argument('-r', '--regex', action='store_true',
     help='Use search string as a Python regex instead of a literal string to '
-      'match. Default: '+str(OPT_DEFAULTS['regex']))
+      'match.')
   parser.add_argument('-v', '--invert', action='store_true',
     help='Find comments that *do not* match the query. Like grep\'s "-v".')
   parser.add_argument('-l', '--limit', type=int,

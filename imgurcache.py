@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+#TODO: Right now it's updating the cache BEFORE it returns any comments. So if
+#      there's no cache, it makes ALL the requests before returning any results.
+#      Need to figure out how to make it return results, THEN update the cache.
+#      Looks like I can have get_live_comment_chunks() itself do it, after the
+#      loop containing the yields.
 from __future__ import division
 import os
 import sys
@@ -88,6 +93,13 @@ def get_live_comment_chunks(user, client_id, cutoff_date=0, limit=0,
       raise StopIteration
     else:
       yield comments_group
+
+    #TODO: Update cache here.
+    #      Have to retrieve the comments already in the cache in order to
+    #      combine with the live comments. But get_cached_and_live_comments(),
+    #      which calls this, already does that. So hopefully avoid doing it
+    #      twice. I may have to bite the bullet and make this optionally
+    #      take on the function of get_cached_and_live_comments().
 
 
 def is_iterable(obj):
